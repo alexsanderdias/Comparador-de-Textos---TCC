@@ -112,5 +112,4 @@ A tabela `comparison_runs` armazena:
 
 - adicionar lint e formatação automática no frontend e no backend
 - extrair partes do `App.jsx` para hooks ou módulos de estado
-- remover artefatos gerados do repositório, como `node_modules`, `dist` e ambientes virtuais
 - expandir testes de interface e cenários de erro
