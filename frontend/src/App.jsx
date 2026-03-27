@@ -1,6 +1,5 @@
 import { startTransition, useEffect, useState } from "react";
 
-import { AuthPanel } from "./features/auth/AuthPanel";
 import { ComparisonForm } from "./features/comparison/ComparisonForm";
 import { DashboardPanel } from "./features/dashboard/DashboardPanel";
 import { MetricsGuidePanel } from "./features/guide/MetricsGuidePanel";
@@ -15,25 +14,18 @@ import {
   extractApiErrorMessage,
   requestBackendReport,
 } from "./lib/api";
-import { HISTORY_LIMIT, initialAuthForm, initialHealth } from "./lib/constants";
+import { HISTORY_LIMIT, initialHealth } from "./lib/constants";
 import { buildTextExport, downloadBlob, slugify } from "./lib/formatters";
 import {
   buildHistoryEntry,
   buildHistorySummary,
   buildHistoryTrend,
   loadHistory,
-  mapSupabaseRowToHistoryEntry,
   saveHistory,
 } from "./lib/history";
 import { buildMetricEntries } from "./lib/metrics";
-import {
-  getCurrentSession,
-  isSupabaseConfigured,
-  subscribeToAuthChanges,
-  supabase,
-} from "./lib/supabase";
 
-const PAGE_IDS = new Set(["home", "auth", "compare", "dashboard", "history", "results", "guide"]);
+const PAGE_IDS = new Set(["home", "compare", "dashboard", "history", "results", "guide"]);
 
 function readPageFromHash(hash) {
   const normalized = hash.replace(/^#\/?/, "").trim().toLowerCase();
@@ -52,30 +44,13 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [health, setHealth] = useState(initialHealth);
   const [localHistory, setLocalHistory] = useState([]);
-  const [remoteHistory, setRemoteHistory] = useState([]);
-  const [historyView, setHistoryView] = useState("local");
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [authForm, setAuthForm] = useState(initialAuthForm);
-  const [authMode, setAuthMode] = useState("signin");
-  const [authBusy, setAuthBusy] = useState(false);
-  const [authMessage, setAuthMessage] = useState("");
-  const [session, setSession] = useState(null);
   const [persistMessage, setPersistMessage] = useState("");
   const [exportFeedback, setExportFeedback] = useState("");
 
-  const displayedHistory = historyView === "supabase" ? remoteHistory : localHistory;
-  const historySummary = buildHistorySummary(displayedHistory);
-  const historyTrend = buildHistoryTrend(displayedHistory);
+  const historySummary = buildHistorySummary(localHistory);
+  const historyTrend = buildHistoryTrend(localHistory);
   const metricEntries = buildMetricEntries(result);
   const navigationItems = [
-    {
-      id: "auth",
-      eyebrow: "Conta",
-      title: "Autenticação",
-      description: "Entrar, criar conta e conectar o histórico persistente.",
-      meta: session?.user ? "Conectado" : isSupabaseConfigured ? "Disponível" : "Opcional",
-      tone: "cool",
-    },
     {
       id: "compare",
       eyebrow: "Fluxo",
@@ -96,8 +71,8 @@ export default function App() {
       id: "history",
       eyebrow: "Arquivo",
       title: "Histórico",
-      description: "Reabrir comparações salvas no navegador ou no Supabase.",
-      meta: historyView === "supabase" ? "Persistente" : "Local",
+      description: "Reabrir comparações salvas no navegador.",
+      meta: "Local",
       tone: "warm",
     },
     {
@@ -126,6 +101,11 @@ export default function App() {
     handleHashChange();
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    checkHealth();
+    setLocalHistory(loadHistory());
   }, []);
 
   function navigateTo(page) {
@@ -175,192 +155,6 @@ export default function App() {
     saveHistory(normalized);
   }
 
-  async function loadRemoteHistory(userId) {
-    if (!supabase) {
-      return;
-    }
-
-    setHistoryLoading(true);
-    try {
-      const { data, error: queryError } = await supabase
-        .from("comparison_runs")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(HISTORY_LIMIT);
-
-      if (queryError) {
-        throw queryError;
-      }
-
-      startTransition(() => {
-        setRemoteHistory((data ?? []).map(mapSupabaseRowToHistoryEntry));
-      });
-    } catch (requestError) {
-      setPersistMessage(
-        `Não foi possível ler o histórico do Supabase: ${requestError.message}`,
-      );
-    } finally {
-      setHistoryLoading(false);
-    }
-  }
-
-  async function persistComparison(resultPayload, userId) {
-    if (!supabase) {
-      return;
-    }
-
-    const { data, error: insertError } = await supabase
-      .from("comparison_runs")
-      .insert({
-        user_id: userId,
-        title: resultPayload.title,
-        created_at: resultPayload.created_at,
-        classification: resultPayload.classification,
-        correlation_index: resultPayload.correlation_index,
-        summary: resultPayload.summary,
-        metrics: resultPayload.metrics,
-        shared_terms: resultPayload.shared_terms,
-        matching_excerpts: resultPayload.matching_excerpts,
-        matching_paragraphs: resultPayload.matching_paragraphs,
-        highlights: resultPayload.highlights,
-        document_a: resultPayload.document_a,
-        document_b: resultPayload.document_b,
-      })
-      .select("*")
-      .single();
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    if (data) {
-      setRemoteHistory((currentHistory) => [
-        mapSupabaseRowToHistoryEntry(data),
-        ...currentHistory,
-      ].slice(0, HISTORY_LIMIT));
-    }
-  }
-
-  useEffect(() => {
-    checkHealth();
-    setLocalHistory(loadHistory());
-
-    if (!isSupabaseConfigured) {
-      return undefined;
-    }
-
-    let unsubscribe = () => {};
-
-    async function hydrateSupabaseSession() {
-      try {
-        const currentSession = await getCurrentSession();
-        setSession(currentSession);
-        if (currentSession?.user) {
-          setHistoryView("supabase");
-          await loadRemoteHistory(currentSession.user.id);
-        }
-      } catch (sessionError) {
-        setAuthMessage(`Falha ao recuperar sessão: ${sessionError.message}`);
-      }
-
-      unsubscribe = subscribeToAuthChanges((nextSession) => {
-        setSession(nextSession);
-        if (nextSession?.user) {
-          setHistoryView("supabase");
-          loadRemoteHistory(nextSession.user.id);
-          return;
-        }
-
-        setRemoteHistory([]);
-        setHistoryView("local");
-      });
-    }
-
-    hydrateSupabaseSession();
-    return () => unsubscribe();
-  }, []);
-
-  async function handleAuthSubmit(event) {
-    event.preventDefault();
-    setAuthMessage("");
-
-    if (!isSupabaseConfigured || !supabase) {
-      setAuthMessage(
-        "Configure o Supabase no .env do frontend para habilitar autenticação.",
-      );
-      return;
-    }
-
-    if (!authForm.email.trim() || !authForm.password.trim()) {
-      setAuthMessage("Preencha email e senha para continuar.");
-      return;
-    }
-
-    try {
-      setAuthBusy(true);
-      if (authMode === "signup") {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: authForm.email.trim(),
-          password: authForm.password,
-        });
-        if (signUpError) {
-          throw signUpError;
-        }
-
-        if (data.session) {
-          setSession(data.session);
-          setHistoryView("supabase");
-          setAuthMessage("Conta criada e autenticada com sucesso.");
-        } else {
-          setAuthMessage(
-            "Conta criada. Se a confirmação por email estiver ativa, finalize pelo link enviado.",
-          );
-        }
-      } else {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email: authForm.email.trim(),
-          password: authForm.password,
-        });
-        if (signInError) {
-          throw signInError;
-        }
-
-        setSession(data.session);
-        setHistoryView("supabase");
-        setAuthMessage("Login realizado com sucesso.");
-      }
-
-      setAuthForm(initialAuthForm);
-    } catch (requestError) {
-      setAuthMessage(requestError.message);
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
-  async function handleSignOut() {
-    if (!supabase) {
-      return;
-    }
-
-    try {
-      setAuthBusy(true);
-      const { error: signOutError } = await supabase.auth.signOut();
-      if (signOutError) {
-        throw signOutError;
-      }
-
-      setSession(null);
-      setHistoryView("local");
-      setAuthMessage("Sessão encerrada.");
-    } catch (requestError) {
-      setAuthMessage(requestError.message);
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
@@ -385,16 +179,9 @@ export default function App() {
       setSubmitting(true);
       const data = await compareDocuments(formData, setProgress);
       setResult(data);
-
       updateLocalHistory([buildHistoryEntry(data), ...localHistory]);
+      setPersistMessage("Comparação salva no histórico local do navegador.");
       navigateTo("results");
-
-      if (session?.user && supabase) {
-        await persistComparison(data, session.user.id);
-        setPersistMessage("Comparação salva no Supabase e no histórico local.");
-      } else {
-        setPersistMessage("Comparação salva apenas no histórico local do navegador.");
-      }
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -477,25 +264,6 @@ export default function App() {
       return <PageHub items={navigationItems} onNavigate={navigateTo} />;
     }
 
-    if (currentPage === "auth") {
-      return (
-        <div className="page-grid page-grid--single">
-          <AuthPanel
-            session={session}
-            authBusy={authBusy}
-            authMode={authMode}
-            setAuthMode={setAuthMode}
-            authForm={authForm}
-            setAuthForm={setAuthForm}
-            authMessage={authMessage}
-            isSupabaseConfigured={isSupabaseConfigured}
-            onSubmit={handleAuthSubmit}
-            onSignOut={handleSignOut}
-          />
-        </div>
-      );
-    }
-
     if (currentPage === "compare") {
       return (
         <div className="page-grid page-grid--single">
@@ -522,7 +290,6 @@ export default function App() {
       return (
         <div className="page-grid page-grid--single">
           <DashboardPanel
-            historyView={historyView}
             historySummary={historySummary}
             historyTrend={historyTrend}
             metricEntries={metricEntries}
@@ -536,11 +303,7 @@ export default function App() {
       return (
         <div className="page-grid page-grid--split">
           <HistoryPanel
-            session={session}
-            historyView={historyView}
-            setHistoryView={setHistoryView}
-            historyLoading={historyLoading}
-            displayedHistory={displayedHistory}
+            displayedHistory={localHistory}
             onRestoreEntry={restoreHistoryEntry}
             onClearLocalHistory={() => updateLocalHistory([])}
           />
@@ -579,7 +342,6 @@ export default function App() {
       <main className="layout">
         <HeroSection
           health={health}
-          isSupabaseConfigured={isSupabaseConfigured}
           onRefreshHealth={checkHealth}
           historyTotal={historySummary.total}
         />

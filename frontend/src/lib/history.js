@@ -34,28 +34,6 @@ export function buildHistoryEntry(result, source = "local", id = null, savedAt =
   };
 }
 
-export function mapSupabaseRowToHistoryEntry(row) {
-  return buildHistoryEntry(
-    {
-      title: row.title,
-      created_at: row.created_at,
-      correlation_index: row.correlation_index,
-      classification: row.classification,
-      summary: row.summary,
-      metrics: row.metrics,
-      shared_terms: row.shared_terms ?? [],
-      matching_excerpts: row.matching_excerpts ?? [],
-      matching_paragraphs: row.matching_paragraphs ?? [],
-      highlights: row.highlights ?? [],
-      document_a: row.document_a,
-      document_b: row.document_b,
-    },
-    "supabase",
-    row.id,
-    row.created_at,
-  );
-}
-
 export function normalizeResultPayload(result) {
   const fallbackMetrics = {
     cosine_score: 0,

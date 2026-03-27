@@ -3,7 +3,6 @@ import { MetricGraph } from "../../components/charts/MetricGraph";
 import { formatPercentage } from "../../lib/formatters";
 
 export function DashboardPanel({
-  historyView,
   historySummary,
   historyTrend,
   metricEntries,
@@ -18,7 +17,7 @@ export function DashboardPanel({
             Leitura consolidada do volume de análises e da qualidade média das comparações.
           </p>
         </div>
-        <span className="support-label">{historyView === "supabase" ? "persistente" : "local"}</span>
+        <span className="support-label">histórico local</span>
       </div>
       <div className="dashboard-intro">
         <div className="dashboard-intro__copy">
@@ -30,7 +29,7 @@ export function DashboardPanel({
         </div>
         <div className="dashboard-intro__badge">
           <span>Origem ativa</span>
-          <strong>{historyView === "supabase" ? "Histórico persistente" : "Histórico local"}</strong>
+          <strong>Histórico local</strong>
         </div>
       </div>
       <div className="dashboard-grid">

@@ -1,22 +1,28 @@
-# Análise Textual TCC
+# Comparador de Textos - TCC
 
-Projeto de TCC para comparação de documentos textuais, com backend em FastAPI, frontend em React e persistência opcional com Supabase.
+Sistema desenvolvido para o Trabalho de Conclusão de Curso com foco em comparação de documentos textuais, cálculo de similaridade e geração de relatórios.
 
-## Objetivo
+## Visão geral
 
-O sistema compara dois documentos e gera uma análise textual com foco em similaridade de conteúdo, estrutura e vocabulário.
+O projeto recebe dois documentos, extrai o conteúdo textual e produz uma análise com base em vocabulário, estrutura e proximidade semântica. A aplicação foi organizada para separar claramente interface, processamento e visualização dos resultados.
 
-## Funcionalidades atuais
+## Principais funcionalidades
 
 - Upload de arquivos `.txt`, `.pdf` e `.docx`
-- Extração e pré-processamento do conteúdo textual
-- Cálculo de métricas de similaridade
+- Pré-processamento e normalização do texto
+- Cálculo de métricas de similaridade textual
 - Comparação por sentenças e por parágrafos
-- Identificação de termos em comum e destaques automáticos
+- Identificação de termos em comum e trechos relacionados
 - Exportação dos resultados em `JSON`, `TXT` e `PDF`
 - Dashboard de métricas no frontend
 - Histórico local no navegador
-- Autenticação e histórico persistente com Supabase
+
+## Tecnologias utilizadas
+
+- Backend: FastAPI
+- Frontend: React + Vite
+- Processamento textual: scikit-learn
+- Leitura de arquivos: PyPDF2 e python-docx
 
 ## Estrutura do projeto
 
@@ -47,9 +53,9 @@ analise-textual-tcc/
   requirements.txt
 ```
 
-## Como executar
+## Como executar localmente
 
-### Backend
+### 1. Backend
 
 ```bash
 cd backend
@@ -59,11 +65,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Documentação interativa:
+Swagger:
 
 - `http://127.0.0.1:8000/docs`
 
-### Frontend
+### 2. Frontend
 
 ```bash
 cd frontend
@@ -71,14 +77,14 @@ npm install
 npm run dev
 ```
 
-Se o PowerShell bloquear `npm`, use:
+Se o PowerShell bloquear `npm`:
 
 ```bash
 cmd /c npm install
 cmd /c npm run dev
 ```
 
-Aplicação local:
+Aplicação:
 
 - `http://127.0.0.1:5173`
 
@@ -89,28 +95,6 @@ Aplicação local:
 - `POST /api/v1/compare/report?format=json`
 - `POST /api/v1/compare/report?format=txt`
 - `POST /api/v1/compare/report?format=pdf`
-
-## Configuração do Supabase
-
-O projeto já está preparado para:
-
-- autenticação com email e senha
-- histórico persistente de comparações
-- isolamento de dados por usuário com RLS
-
-### Passos
-
-1. Crie um projeto no Supabase.
-2. Execute o SQL de `supabase/schema.sql` no SQL Editor.
-3. Copie `frontend/.env.example` para `frontend/.env`.
-4. Preencha as variáveis:
-
-```bash
-VITE_SUPABASE_URL=
-VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
-```
-
-5. Reinicie o frontend.
 
 ## Testes
 
@@ -129,8 +113,12 @@ cd frontend
 npm run test
 ```
 
+## Documentação
+
+- Arquitetura técnica: [`docs/arquitetura-tecnica.md`](./docs/arquitetura-tecnica.md)
+
 ## Publicação no Git
 
-- O repositório já está preparado para ignorar ambientes virtuais, `node_modules`, `dist`, logs e arquivos temporários.
-- O arquivo [`requirements.txt`](./requirements.txt) na raiz aponta para as dependências do backend.
-- O `package-lock.json` do frontend deve permanecer versionado.
+- O repositório ignora ambientes virtuais, `node_modules`, `dist`, logs e arquivos temporários.
+- O [`requirements.txt`](./requirements.txt) da raiz aponta para o backend.
+- O `package-lock.json` do frontend permanece versionado para reprodutibilidade.

@@ -1,6 +1,5 @@
 export function HeroSection({
   health,
-  isSupabaseConfigured,
   onRefreshHealth,
   historyTotal,
 }) {
@@ -9,11 +8,10 @@ export function HeroSection({
       <div className="hero__content">
         <div className="hero__copy">
           <p className="eyebrow">Plataforma de validação do TCC</p>
-          <h1>Comparador textual com dashboard, histórico e autenticação</h1>
+          <h1>Comparador textual com dashboard, histórico e relatórios</h1>
           <p className="hero__text">
-            O frontend agora acompanha a evolução da análise com comparação por
-            parágrafos, exportação em PDF, dashboard de métricas e histórico
-            persistente no Supabase quando a integração estiver configurada.
+            O sistema compara documentos, organiza métricas de similaridade,
+            destaca trechos relacionados e permite exportação em PDF, TXT e JSON.
           </p>
         </div>
         <div className="hero__feature-row">
@@ -38,15 +36,9 @@ export function HeroSection({
             <span className="status-pill__dot" />
             <span>{health.loading ? "Checando..." : health.message}</span>
           </div>
-          <div
-            className={`status-pill ${isSupabaseConfigured ? "status-pill--ok" : "status-pill--off"}`}
-          >
+          <div className="status-pill status-pill--ok">
             <span className="status-pill__dot" />
-            <span>
-              {isSupabaseConfigured
-                ? "Supabase pronto para autenticar e persistir histórico"
-                : "Supabase ainda não configurado no frontend"}
-            </span>
+            <span>Histórico local ativo no navegador</span>
           </div>
         </div>
       </div>
@@ -56,9 +48,7 @@ export function HeroSection({
         <article className="hero-preview">
           <div className="hero-preview__header">
             <span className="hero-preview__eyebrow">Painel em foco</span>
-            <span className="hero-preview__mode">
-              {isSupabaseConfigured ? "persistência pronta" : "modo local"}
-            </span>
+            <span className="hero-preview__mode">modo local</span>
           </div>
           <div className="hero-preview__score">
             <span>Correlação em destaque</span>

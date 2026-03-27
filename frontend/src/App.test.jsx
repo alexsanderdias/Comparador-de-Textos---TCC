@@ -3,13 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 
-vi.mock("./lib/supabase", () => ({
-  getCurrentSession: vi.fn(async () => null),
-  isSupabaseConfigured: false,
-  subscribeToAuthChanges: vi.fn(() => () => {}),
-  supabase: null,
-}));
-
 describe("App", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -28,7 +21,7 @@ describe("App", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /Comparador textual com dashboard, histórico e autenticação/i,
+        name: /Comparador textual com dashboard, histórico e relatórios/i,
       }),
     ).toBeInTheDocument();
 

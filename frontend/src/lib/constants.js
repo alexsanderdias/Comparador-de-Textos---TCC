@@ -7,11 +7,6 @@ export const initialHealth = {
   message: "Verificando backend...",
 };
 
-export const initialAuthForm = {
-  email: "",
-  password: "",
-};
-
 export const METRIC_META = {
   correlation_index: {
     label: "Correlação geral",
@@ -25,7 +20,7 @@ export const METRIC_META = {
   },
   jaccard_score: {
     label: "Jaccard",
-    description: "Mede a intersecção entre os conjuntos de termos dos textos.",
+    description: "Mede a interseção entre os conjuntos de termos dos textos.",
     tone: "cool",
   },
   overlap_score: {
